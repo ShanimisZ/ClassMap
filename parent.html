@@ -7,7 +7,7 @@
     body {
       margin: 0;
       font-family: "Heebo", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-      sans-serif;
+        sans-serif;
       background: #f3f4f6;
       direction: rtl;
       color: #111827;
@@ -86,7 +86,7 @@
     .range-input {
       width: 100%;
       margin-top: 16px;
-      accent-color: #6c5ce7;
+      accent-color: #d595e2;
     }
 
     .scale-row {
@@ -132,9 +132,9 @@
     }
 
     .buttons button:last-child {
-      background: #6c5ce7;
+      background: #b47fc2;
       color: #fff;
-      border-color: #6c5ce7;
+      border-color: #5d4264;
     }
 
     #doneBlock {
@@ -142,6 +142,36 @@
       text-align: center;
       margin-top: 3rem;
     }
+
+    @media (max-width: 600px) {
+  .parent-shell {
+    margin: 20px auto 24px;
+    padding: 0 12px 24px;
+  }
+
+  .question-card {
+    padding: 18px 16px 18px;
+    border-radius: 18px;
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.12);
+  }
+
+  .question-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .question-header p {
+    font-size: 0.95rem;
+  }
+
+  .scale-label {
+    font-size: 0.86rem;
+  }
+
+  .buttons button {
+    font-size: 0.9rem;
+    padding: 0.55rem 0.9rem;
+  }
+}
   </style>
 </head>
 <body>
@@ -152,11 +182,19 @@
           <div id="progressText" class="progress-text"></div>
           <div id="progressDots" class="progress-dots"></div>
         </div>
-        <h1 id="qTitle">&#x05E9;&#x05D0;&#x05DC;&#x05D4;</h1>
-        <p id="qDescription">&#x05EA;&#x05D9;&#x05D0;&#x05D5;&#x05E8; &#x05D4;&#x05E9;&#x05D0;&#x05DC;&#x05D4; &#x05D9;&#x05D5;&#x05E6;&#x05D2; &#x05DB;&#x05D0;&#x05DF;.</p>
+        <h1 id="qTitle">שאלה</h1>
+        <p id="qDescription">תיאור השאלה יוצג כאן.</p>
       </div>
 
-      <input id="rangeInput" class="range-input" type="range" min="0" max="100" step="1" value="50" />
+      <input
+        id="rangeInput"
+        class="range-input"
+        type="range"
+        min="0"
+        max="100"
+        step="1"
+        value="50"
+      />
 
       <div class="scale-row">
         <div class="scale-label" id="labelLeft"></div>
@@ -164,59 +202,86 @@
         <div class="scale-label" id="labelRight"></div>
       </div>
 
-      <div id="status" class="status">&#x05D2;&#x05E8;&#x05E8;&#x05D5; &#x05D0;&#x05EA; &#x05D4;&#x05E1;&#x05E8;&#x05D2;&#x05DC; &#x05DB;&#x05D3;&#x05D9; &#x05DC;&#x05D1;&#x05D7;&#x05D5;&#x05E8;.</div>
+      <div id="status" class="status">
+        גררו את הסרגל כדי לבחור.
+      </div>
 
       <div class="buttons">
-        <button id="backBtn" type="button">&#x05D7;&#x05D6;&#x05E8;&#x05D4;</button>
-        <button id="submitBtn" type="button">&#x05D4;&#x05DE;&#x05E9;&#x05DA;</button>
+        <button id="backBtn" type="button">חזרה</button>
+        <button id="submitBtn" type="button">המשך</button>
       </div>
     </section>
 
     <div id="doneBlock">
       <h2>🙏 תודה</h2>
-      <p>ענית על כל השאלות. אפשר להניח את הטלפון ולהמשיך להקשיב במפגש</p>
+      <p>ענית על כל השאלות. אפשר להניח את הטלפון ולהמשיך להקשיב במפגש.</p>
     </div>
   </main>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxroy8w-KkybITVHMqoXUB8vg3M4uHfMa22Op4mK2xeDXLEguxIm854IFaQF4JJ47Vo/exec"; // same as host.html
-    const sessionId = "5A_2025-11-26";
+    // === CONFIG ===
+    const SCRIPT_URL =
+      "https://script.google.com/macros/s/AKfycbxroy8w-KkybITVHMqoXUB8vg3M4uHfMa22Op4mK2xeDXLEguxIm854IFaQF4JJ47Vo/exec";
 
+    // Allow sessionId override from URL (like parent.html?sessionId=5A_2025-11-26)
+    const urlParams = new URLSearchParams(location.search);
+    const sessionId = urlParams.get("sessionId") || "5A_2025-11-26";
+
+    // Stable parent ID (no optional chaining → works everywhere)
     let parentId = localStorage.getItem("classmap_parentId");
     if (!parentId) {
-      parentId = self.crypto?.randomUUID
-        ? crypto.randomUUID()
-        : String(Math.random()).slice(2);
+      if (
+        typeof crypto !== "undefined" &&
+        crypto &&
+        typeof crypto.randomUUID === "function"
+      ) {
+        parentId = crypto.randomUUID();
+      } else {
+        parentId = String(Math.random()).slice(2);
+      }
       localStorage.setItem("classmap_parentId", parentId);
     }
 
+    // Fallback questions if questions.json fails
     const fallbackQuestions = [
-      {
-        id: "q1",
-        title: "How is your child feeling at school?",
-        description: "Pick the point on the scale that fits best.",
-        leftLabel: "Very challenging",
-        middleLabel: "Neutral / sometimes",
-        rightLabel: "Very positive"
-      },
-      {
-        id: "q2",
-        title: "How often does your child enjoy class activities?",
-        description: "Choose the option that reflects the typical experience.",
-        leftLabel: "Rarely",
-        middleLabel: "Sometimes",
-        rightLabel: "Most of the time"
-      },
-      {
-        id: "q3",
-        title: "How supported does your child feel by the teacher?",
-        description: "Select the description that is closest to reality.",
-        leftLabel: "Not supported",
-        middleLabel: "Somewhat supported",
-        rightLabel: "Very supported"
-      }
+    {
+    id: "q1",
+    title: "עד כמה הילד/ה מבין/ה את חשיבות המצפן",
+    description: "כשאתן/ם חושבות/ים על הילד/ה שלכן/ם – עד כמה נראה לכם שהוא/היא מבין/ה למה יש “מצפן” בבית הספר ולמה הוא חשוב?",
+    leftLabel: "מבין/ה היטב מה הרעיון ולמה זה חשוב בכיתה ובקהילה",
+    middleLabel: "מבין/ה בגדול מה הרעיון, אבל זה לא ממש תופס מקום ביום־יום שלו/ה",
+    rightLabel: "כמעט לא – זה מרגיש לו/ה כמו “עוד משהו שבית הספר מדבר עליו”"
+    },
+
+    {
+    id: "q2",
+    title: "איך הילד/ה חווה את הפער?",
+    description: "אם יש פער בין הבית לקהילה – איך נראה לכם שהילד/ה חי/ה אותו?",
+    leftLabel: "בסדר / מעשיר / לא משמעותי",
+    middleLabel: "לפעמים מבלבל, לפעמים בסדר",
+    rightLabel: "לעיתים קרובות מבלבל או מכאיב"
+    },
+  
+   {
+    id: "q3",
+    title: "דיגיטל: סמארטפונים, מסכים, משחקים",
+    description: "בנושא טלפונים חכמים, מסכים ומשחקים דיגיטליים – עד כמה נראה לכם שהילד/ה שלכם מרגיש/ה שהקו של המצפן דומה למה שהוא/היא חווה בפועל בבית ובסביבה?",
+    leftLabel: "מרגיש/ה שהמסר די עקבי – פחות או יותר אותו כיוון בבית, בבית הספר ובחברים",
+    middleLabel: "לפעמים זה מרגיש באותו כיוון ולפעמים לא – יש פערים",
+    rightLabel: "מרגיש/ה שיש הבדל גדול – שומע/ת מסר אחד במצפן ומציאות אחרת בשטח"
+   },
+   
+   {
+    id: "q4",
+    title: "חברתי: ימי הולדת, הזמנות, הדרה",
+    description: "כשאתם חושבים על ימי הולדת והזמנות ילדים/ות מהכיתה – עד כמה נראה לכם שהילד/ה שלכם מרגיש/ה שהמצפן מתאר משהו שדומה למה שקורה באמת?",
+    leftLabel: "מרגיש/ה שבגדול זה דומה – יש מאמץ לא להדיר ולהכליל",
+    middleLabel: "החוויה מעורבת – יש גם רגעים של הכלה וגם רגעים כואבים יותר של הדרה",
+    rightLabel: "מרגיש/ה שיש פער גדול – שומע/ת במצפן על הכלה, אבל בפועל חווה לא מעט הדרה / החמצות"
+   }
     ];
 
+    // === DOM ===
     const questionBlock = document.getElementById("questionBlock");
     const doneBlock = document.getElementById("doneBlock");
     const qTitleEl = document.getElementById("qTitle");
@@ -225,17 +290,19 @@
     const labelMidEl = document.getElementById("labelMid");
     const labelRightEl = document.getElementById("labelRight");
     const rangeInput = document.getElementById("rangeInput");
-    const status = document.getElementById("status");
+    const statusEl = document.getElementById("status");
     const backBtn = document.getElementById("backBtn");
     const submitBtn = document.getElementById("submitBtn");
     const progressTextEl = document.getElementById("progressText");
     const progressDotsEl = document.getElementById("progressDots");
 
+    // === STATE ===
     let questions = [];
     let currentIndex = 0;
     let locked = false;
     const answers = {};
 
+    // Describe slider value according to current labels
     function describeValue(value) {
       const v = Number(value);
       if (v <= 30) return labelLeftEl.textContent;
@@ -243,11 +310,16 @@
       return labelMidEl.textContent;
     }
 
+    // === LOAD QUESTIONS FROM JSON (WITH CACHE-BUST) ===
     async function loadQuestions() {
       try {
-        const res = await fetch("questions.json");
+        const res = await fetch("questions.json?cache=" + Date.now());
+        console.log("questions.json status:", res.status);
         if (!res.ok) throw new Error("HTTP " + res.status);
+
         const loaded = await res.json();
+        console.log("Loaded questions:", loaded);
+
         if (!Array.isArray(loaded) || loaded.length === 0) {
           throw new Error("questions.json empty or invalid");
         }
@@ -257,14 +329,14 @@
         questions = fallbackQuestions;
       }
 
-      if (progressDotsEl) {
-        progressDotsEl.innerHTML = "";
-        for (let i = 0; i < questions.length; i++) {
-          const dot = document.createElement("div");
-          dot.className = "progress-dot";
-          progressDotsEl.appendChild(dot);
-        }
+      // Build progress dots
+      progressDotsEl.innerHTML = "";
+      for (let i = 0; i < questions.length; i++) {
+        const dot = document.createElement("div");
+        dot.className = "progress-dot";
+        progressDotsEl.appendChild(dot);
       }
+
       currentIndex = 0;
       showCurrentQuestion();
     }
@@ -284,24 +356,25 @@
       rangeInput.disabled = false;
       submitBtn.disabled = false;
 
-      if (progressTextEl) {
-        progressTextEl.textContent = `\u05E9\u05D0\u05DC\u05D4 ${step} \u05DE\u05EA\u05D5\u05DA ${total}`;
-      }
-      if (progressDotsEl) {
-        const dots = progressDotsEl.children;
-        for (let i = 0; i < dots.length; i++) {
-          dots[i].classList.remove("active", "completed");
-          if (i < currentIndex) dots[i].classList.add("completed");
-          else if (i === currentIndex) dots[i].classList.add("active");
-        }
+      // Progress text
+      progressTextEl.textContent = `שאלה ${step} מתוך ${total}`;
+
+      // Progress dots
+      const dots = progressDotsEl.children;
+      for (let i = 0; i < dots.length; i++) {
+        dots[i].classList.remove("active", "completed");
+        if (i < currentIndex) dots[i].classList.add("completed");
+        else if (i === currentIndex) dots[i].classList.add("active");
       }
 
+      // Fill question + labels
       qTitleEl.textContent = q.title || "";
       qDescriptionEl.textContent = q.description || "";
       labelLeftEl.textContent = q.leftLabel || "";
       labelMidEl.textContent = q.middleLabel || "";
       labelRightEl.textContent = q.rightLabel || "";
 
+      // Restore previous answer if exists
       const saved = answers[q.id];
       if (typeof saved === "number" && !Number.isNaN(saved)) {
         rangeInput.value = saved;
@@ -311,21 +384,22 @@
 
       const val = rangeInput.value;
       const label = describeValue(val);
-      status.textContent = `\u05D4\u05E2\u05E8\u05DB\u05D4 \u05E0\u05D5\u05DB\u05D7\u05D9\u05EA: ${label} (\u05E2\u05E8\u05DA: ${val})`;
+      statusEl.textContent = `הערכה נוכחית: ${label} (ערך: ${val})`;
 
       backBtn.disabled = currentIndex === 0;
       submitBtn.textContent =
-        currentIndex === total - 1 ? "\u05E1\u05D9\u05D5\u05DD" : "\u05D4\u05DE\u05E9\u05DA";
+        currentIndex === total - 1 ? "סיום" : "המשך";
 
       questionBlock.style.display = "block";
       doneBlock.style.display = "none";
     }
 
+    // === EVENTS ===
     rangeInput.addEventListener("input", () => {
       if (locked) return;
       const val = rangeInput.value;
       const label = describeValue(val);
-      status.textContent = `\u05D4\u05E2\u05E8\u05DB\u05D4 \u05E0\u05D5\u05DB\u05D7\u05D9\u05EA: ${label} (\u05E2\u05E8\u05DA: ${val})`;
+      statusEl.textContent = `הערכה נוכחית: ${label} (ערך: ${val})`;
     });
 
     backBtn.addEventListener("click", () => {
@@ -347,21 +421,21 @@
       const label = describeValue(val);
 
       answers[questionId] = val;
-      status.textContent = `\u05E0\u05E9\u05DE\u05E8. \u05E2\u05D5\u05D1\u05E8\u05D9\u05DD \u05DC\u05E9\u05D0\u05DC\u05D4 \u05D4\u05D1\u05D0\u05D4... (${label}, \u05E2\u05E8\u05DA: ${val})`;
+      statusEl.textContent = `נשמר. עוברים לשאלה הבאה... (${label}, ערך: ${val})`;
 
       const payload = JSON.stringify({
         sessionId,
         parentId,
         questionId,
-        value: val
+        value: val,
       });
       const formData = new URLSearchParams();
       formData.append("payload", payload);
 
       fetch(SCRIPT_URL, {
         method: "POST",
-        body: formData
-      }).catch(err => {
+        body: formData,
+      }).catch((err) => {
         console.error("Background save error:", err);
       });
 
@@ -372,9 +446,8 @@
       }, 200);
     });
 
+    // === BOOT ===
     loadQuestions();
   </script>
 </body>
 </html>
-
-
