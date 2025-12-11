@@ -1,58 +1,67 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="he">
 <head>
   <meta charset="UTF-8" />
-  <title>Class Map – Parent View</title>
+  <title>Class Map - Parent View</title>
   <style>
     body {
-      font-family: system-ui, sans-serif;
-      max-width: 600px;
-      margin: 2rem auto;
-      padding: 0 1rem;
+      margin: 0;
+      font-family: "Heebo", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+      sans-serif;
+      background: #f3f4f6;
       direction: rtl;
+      color: #111827;
     }
-    .question-title {
-      font-size: 1.2rem;
-      margin-bottom: 1rem;
+
+    .parent-shell {
+      max-width: 860px;
+      margin: 40px auto;
+      padding: 0 16px 32px;
     }
-    .scale-labels {
+
+    .question-card {
+      background: #ffffff;
+      border-radius: 22px;
+      padding: 24px 26px 22px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+    }
+
+    .question-header {
       display: flex;
-      justify-content: space-between;
-      font-size: 0.85rem;
-      color: #555;
-      margin-top: 0.25rem;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
     }
-    input[type="range"] {
-      width: 100%;
-      margin-top: 1rem;
+
+    .question-header h1 {
+      margin: 0;
+      font-size: 1.5rem;
     }
-    .status {
-      margin-top: 0.75rem;
-      font-size: 0.95rem;
+
+    .question-header p {
+      margin: 0;
+      font-size: 0.98rem;
+      line-height: 1.7;
+      color: #4b5563;
     }
-    .status.locked {
-      color: #1a7a2e;
-      font-weight: 500;
-    }
-    button {
-      margin-top: 1rem;
-      padding: 0.5rem 1rem;
-      font-size: 1rem;
-      cursor: pointer;
-    }
+
     .progress {
-      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
     }
+
     .progress-text {
-      font-size: 0.85rem;
-      margin-bottom: 0.25rem;
-      color: #555;
-      text-align: left;
+      font-size: 0.9rem;
+      color: #6b7280;
     }
+
     .progress-dots {
       display: flex;
       gap: 0.35rem;
     }
+
     .progress-dot {
       width: 9px;
       height: 9px;
@@ -61,55 +70,113 @@
       background: transparent;
       opacity: 0.4;
     }
+
     .progress-dot.active {
       background: #6c5ce7;
       border-color: #6c5ce7;
       opacity: 1;
     }
+
     .progress-dot.completed {
       background: #6c5ce7;
       border-color: #6c5ce7;
       opacity: 0.6;
     }
+
+    .range-input {
+      width: 100%;
+      margin-top: 16px;
+      accent-color: #6c5ce7;
+    }
+
+    .scale-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .scale-label {
+      flex: 1;
+      text-align: center;
+      font-size: 0.92rem;
+      color: #4b5563;
+      line-height: 1.4;
+    }
+
+    .status {
+      margin-top: 0.9rem;
+      font-size: 0.95rem;
+      color: #1f2937;
+    }
+
+    .status.locked {
+      color: #1a7a2e;
+      font-weight: 500;
+    }
+
     .buttons {
       display: flex;
       gap: 0.5rem;
-      margin-top: 0.75rem;
+      margin-top: 1.1rem;
+    }
+
+    .buttons button {
+      flex: 1;
+      padding: 0.65rem 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+      border-radius: 10px;
+      border: 1px solid #d1d5db;
+      background: #f9fafb;
+    }
+
+    .buttons button:last-child {
+      background: #6c5ce7;
+      color: #fff;
+      border-color: #6c5ce7;
+    }
+
+    #doneBlock {
+      display: none;
+      text-align: center;
+      margin-top: 3rem;
     }
   </style>
 </head>
 <body>
-  <div class="question" id="questionBlock">
-    <div class="progress">
-      <div id="progressText" class="progress-text"></div>
-      <div id="progressDots" class="progress-dots"></div>
+  <main class="parent-shell">
+    <section class="question-card" id="questionBlock">
+      <div class="question-header">
+        <div class="progress">
+          <div id="progressText" class="progress-text"></div>
+          <div id="progressDots" class="progress-dots"></div>
+        </div>
+        <h1 id="qTitle">&#x05E9;&#x05D0;&#x05DC;&#x05D4;</h1>
+        <p id="qDescription">&#x05EA;&#x05D9;&#x05D0;&#x05D5;&#x05E8; &#x05D4;&#x05E9;&#x05D0;&#x05DC;&#x05D4; &#x05D9;&#x05D5;&#x05E6;&#x05D2; &#x05DB;&#x05D0;&#x05DF;.</p>
+      </div>
+
+      <input id="rangeInput" class="range-input" type="range" min="0" max="100" step="1" value="50" />
+
+      <div class="scale-row">
+        <div class="scale-label" id="labelLeft"></div>
+        <div class="scale-label" id="labelMid"></div>
+        <div class="scale-label" id="labelRight"></div>
+      </div>
+
+      <div id="status" class="status">&#x05D2;&#x05E8;&#x05E8;&#x05D5; &#x05D0;&#x05EA; &#x05D4;&#x05E1;&#x05E8;&#x05D2;&#x05DC; &#x05DB;&#x05D3;&#x05D9; &#x05DC;&#x05D1;&#x05D7;&#x05D5;&#x05E8;.</div>
+
+      <div class="buttons">
+        <button id="backBtn" type="button">&#x05D7;&#x05D6;&#x05E8;&#x05D4;</button>
+        <button id="submitBtn" type="button">&#x05D4;&#x05DE;&#x05E9;&#x05DA;</button>
+      </div>
+    </section>
+
+    <div id="doneBlock">
+      <h2>🙏 תודה</h2>
+      <p>ענית על כל השאלות. אפשר להניח את הטלפון ולהמשיך להקשיב במפגש</p>
     </div>
-
-    <div class="question-title" id="questionTitle"></div>
-    <div id="questionDescription" style="margin-top:0.5rem; font-size:0.95rem;"></div>
-
-    <input id="slider" type="range" min="0" max="100" step="1" value="50" />
-
-    <div class="scale-labels">
-      <span id="leftLabel"></span>
-      <span id="middleLabel"></span>
-      <span id="rightLabel"></span>
-    </div>
-
-    <div id="status" class="status">
-      טוען שאלה...
-    </div>
-
-    <div class="buttons">
-      <button id="backBtn">חזרה</button>
-      <button id="submitBtn">שמור/י תשובה והמשך</button>
-    </div>
-  </div>
-
-  <div id="doneBlock" style="display:none; text-align:center; margin-top:3rem;">
-    <h2>🙏 תודה</h2>
-    <p>ענית על כל השאלות. אפשר להניח את הטלפון ולהמשיך להקשיב במפגש.</p>
-  </div>
+  </main>
 
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxroy8w-KkybITVHMqoXUB8vg3M4uHfMa22Op4mK2xeDXLEguxIm854IFaQF4JJ47Vo/exec"; // same as host.html
@@ -126,38 +193,38 @@
     const fallbackQuestions = [
       {
         id: "q1",
-        title: "מפת שייכות – איפה הילד/ה שלי בכיתה?",
-        description: "דמיינו את הכיתה כמעגל. היכן הילד/ה שלכם בדרך כלל נמצא/ת ביחס לקבוצה?",
-        leftLabel: "יותר בצד / מתבוננ/ת",
-        middleLabel: "לפעמים בפנים, לפעמים בחוץ",
-        rightLabel: "במרכז הדברים"
+        title: "How is your child feeling at school?",
+        description: "Pick the point on the scale that fits best.",
+        leftLabel: "Very challenging",
+        middleLabel: "Neutral / sometimes",
+        rightLabel: "Very positive"
       },
       {
         id: "q2",
-        title: "הלימה בין הבית לקהילה",
-        description: "עד כמה המסרים וציפיות בבית דומים למסרים של בית הספר והקהילה?",
-        leftLabel: "מאוד דומה",
-        middleLabel: "יש דומה וגם שונה",
-        rightLabel: "מאוד שונה, הילד/ה כנראה מרגיש/ה את זה"
+        title: "How often does your child enjoy class activities?",
+        description: "Choose the option that reflects the typical experience.",
+        leftLabel: "Rarely",
+        middleLabel: "Sometimes",
+        rightLabel: "Most of the time"
       },
       {
         id: "q3",
-        title: "איך הילד/ה חווה את הפער?",
-        description: "אם יש פער בין הבית לקהילה – איך נראה לכם שהילד/ה חי/ה אותו?",
-        leftLabel: "בסדר / מעשיר / לא משמעותי",
-        middleLabel: "לפעמים מבלבל, לפעמים בסדר",
-        rightLabel: "לעיתים קרובות מבלבל או מכאיב"
+        title: "How supported does your child feel by the teacher?",
+        description: "Select the description that is closest to reality.",
+        leftLabel: "Not supported",
+        middleLabel: "Somewhat supported",
+        rightLabel: "Very supported"
       }
     ];
 
     const questionBlock = document.getElementById("questionBlock");
     const doneBlock = document.getElementById("doneBlock");
-    const questionTitleEl = document.getElementById("questionTitle");
-    const questionDescEl = document.getElementById("questionDescription");
-    const leftLabelEl = document.getElementById("leftLabel");
-    const middleLabelEl = document.getElementById("middleLabel");
-    const rightLabelEl = document.getElementById("rightLabel");
-    const slider = document.getElementById("slider");
+    const qTitleEl = document.getElementById("qTitle");
+    const qDescriptionEl = document.getElementById("qDescription");
+    const labelLeftEl = document.getElementById("labelLeft");
+    const labelMidEl = document.getElementById("labelMid");
+    const labelRightEl = document.getElementById("labelRight");
+    const rangeInput = document.getElementById("rangeInput");
     const status = document.getElementById("status");
     const backBtn = document.getElementById("backBtn");
     const submitBtn = document.getElementById("submitBtn");
@@ -167,13 +234,13 @@
     let questions = [];
     let currentIndex = 0;
     let locked = false;
-    let answers = {};
+    const answers = {};
 
     function describeValue(value) {
       const v = Number(value);
-      if (v <= 30) return leftLabelEl.textContent;
-      if (v >= 70) return rightLabelEl.textContent;
-      return middleLabelEl.textContent;
+      if (v <= 30) return labelLeftEl.textContent;
+      if (v >= 70) return labelRightEl.textContent;
+      return labelMidEl.textContent;
     }
 
     async function loadQuestions() {
@@ -214,11 +281,11 @@
       const q = questions[currentIndex];
 
       locked = false;
-      slider.disabled = false;
+      rangeInput.disabled = false;
       submitBtn.disabled = false;
 
       if (progressTextEl) {
-        progressTextEl.textContent = `שאלה ${step} מתוך ${total}`;
+        progressTextEl.textContent = `\u05E9\u05D0\u05DC\u05D4 ${step} \u05DE\u05EA\u05D5\u05DA ${total}`;
       }
       if (progressDotsEl) {
         const dots = progressDotsEl.children;
@@ -229,36 +296,36 @@
         }
       }
 
-      questionTitleEl.textContent = q.title || "";
-      questionDescEl.textContent = q.description || "";
-      leftLabelEl.textContent = q.leftLabel || "";
-      middleLabelEl.textContent = q.middleLabel || "";
-      rightLabelEl.textContent = q.rightLabel || "";
+      qTitleEl.textContent = q.title || "";
+      qDescriptionEl.textContent = q.description || "";
+      labelLeftEl.textContent = q.leftLabel || "";
+      labelMidEl.textContent = q.middleLabel || "";
+      labelRightEl.textContent = q.rightLabel || "";
 
       const saved = answers[q.id];
       if (typeof saved === "number" && !Number.isNaN(saved)) {
-        slider.value = saved;
+        rangeInput.value = saved;
       } else {
-        slider.value = 50;
+        rangeInput.value = 50;
       }
 
-      const val = slider.value;
+      const val = rangeInput.value;
       const label = describeValue(val);
-      status.textContent = `המיקום הנוכחי על הקו: ${label} (ערך: ${val})`;
+      status.textContent = `\u05D4\u05E2\u05E8\u05DB\u05D4 \u05E0\u05D5\u05DB\u05D7\u05D9\u05EA: ${label} (\u05E2\u05E8\u05DA: ${val})`;
 
       backBtn.disabled = currentIndex === 0;
       submitBtn.textContent =
-        currentIndex === total - 1 ? "שמור/י תשובה וסיום" : "שמור/י תשובה והמשך";
+        currentIndex === total - 1 ? "\u05E1\u05D9\u05D5\u05DD" : "\u05D4\u05DE\u05E9\u05DA";
 
       questionBlock.style.display = "block";
       doneBlock.style.display = "none";
     }
 
-    slider.addEventListener("input", () => {
+    rangeInput.addEventListener("input", () => {
       if (locked) return;
-      const val = slider.value;
+      const val = rangeInput.value;
       const label = describeValue(val);
-      status.textContent = `המיקום הנוכחי על הקו: ${label} (ערך: ${val})`;
+      status.textContent = `\u05D4\u05E2\u05E8\u05DB\u05D4 \u05E0\u05D5\u05DB\u05D7\u05D9\u05EA: ${label} (\u05E2\u05E8\u05DA: ${val})`;
     });
 
     backBtn.addEventListener("click", () => {
@@ -276,11 +343,11 @@
 
       const q = questions[currentIndex];
       const questionId = q.id;
-      const val = Number(slider.value);
+      const val = Number(rangeInput.value);
       const label = describeValue(val);
 
       answers[questionId] = val;
-      status.textContent = `✅ התשובה נשמרת. בחרת: ${label} (ערך: ${val})`;
+      status.textContent = `\u05E0\u05E9\u05DE\u05E8. \u05E2\u05D5\u05D1\u05E8\u05D9\u05DD \u05DC\u05E9\u05D0\u05DC\u05D4 \u05D4\u05D1\u05D0\u05D4... (${label}, \u05E2\u05E8\u05DA: ${val})`;
 
       const payload = JSON.stringify({
         sessionId,
@@ -309,3 +376,5 @@
   </script>
 </body>
 </html>
+
+
