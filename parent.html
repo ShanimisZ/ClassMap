@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8" />
+  <title>Class Map – Parent View</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 600px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      direction: rtl;
+    }
+    .question-title {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+    }
+    .scale-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: #555;
+      margin-top: 0.25rem;
+    }
+    input[type="range"] {
+      width: 100%;
+      margin-top: 1rem;
+    }
+    .status {
+      margin-top: 0.75rem;
+      font-size: 0.95rem;
+    }
+    .status.locked {
+      color: #1a7a2e;
+      font-weight: 500;
+    }
+    button {
+      margin-top: 1rem;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .progress {
+      margin-bottom: 1rem;
+    }
+    .progress-text {
+      font-size: 0.85rem;
+      margin-bottom: 0.25rem;
+      color: #555;
+      text-align: left;
+    }
+    .progress-dots {
+      display: flex;
+      gap: 0.35rem;
+    }
+    .progress-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      border: 1px solid #bbb;
+      background: transparent;
+      opacity: 0.4;
+    }
+    .progress-dot.active {
+      background: #6c5ce7;
+      border-color: #6c5ce7;
+      opacity: 1;
+    }
+    .progress-dot.completed {
+      background: #6c5ce7;
+      border-color: #6c5ce7;
+      opacity: 0.6;
+    }
+    .buttons {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="question" id="questionBlock">
+    <div class="progress">
+      <div id="progressText" class="progress-text"></div>
+      <div id="progressDots" class="progress-dots"></div>
+    </div>
+
+    <div class="question-title" id="questionTitle"></div>
+    <div id="questionDescription" style="margin-top:0.5rem; font-size:0.95rem;"></div>
+
+    <input id="slider" type="range" min="0" max="100" step="1" value="50" />
+
+    <div class="scale-labels">
+      <span id="leftLabel"></span>
+      <span id="middleLabel"></span>
+      <span id="rightLabel"></span>
+    </div>
+
+    <div id="status" class="status">
+      טוען שאלה...
+    </div>
+
+    <div class="buttons">
+      <button id="backBtn">חזרה</button>
+      <button id="submitBtn">שמור/י תשובה והמשך</button>
+    </div>
+  </div>
+
+  <div id="doneBlock" style="display:none; text-align:center; margin-top:3rem;">
+    <h2>🙏 תודה</h2>
+    <p>ענית על כל השאלות. אפשר להניח את הטלפון ולהמשיך להקשיב במפגש.</p>
+  </div>
+
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxroy8w-KkybITVHMqoXUB8vg3M4uHfMa22Op4mK2xeDXLEguxIm854IFaQF4JJ47Vo/exec"; // same as host.html
+    const sessionId = "5A_2025-11-26";
+
+    let parentId = localStorage.getItem("classmap_parentId");
+    if (!parentId) {
+      parentId = self.crypto?.randomUUID
+        ? crypto.randomUUID()
+        : String(Math.random()).slice(2);
+      localStorage.setItem("classmap_parentId", parentId);
+    }
+
+    const fallbackQuestions = [
+      {
+        id: "q1",
+        title: "מפת שייכות – איפה הילד/ה שלי בכיתה?",
+        description: "דמיינו את הכיתה כמעגל. היכן הילד/ה שלכם בדרך כלל נמצא/ת ביחס לקבוצה?",
+        leftLabel: "יותר בצד / מתבוננ/ת",
+        middleLabel: "לפעמים בפנים, לפעמים בחוץ",
+        rightLabel: "במרכז הדברים"
+      },
+      {
+        id: "q2",
+        title: "הלימה בין הבית לקהילה",
+        description: "עד כמה המסרים וציפיות בבית דומים למסרים של בית הספר והקהילה?",
+        leftLabel: "מאוד דומה",
+        middleLabel: "יש דומה וגם שונה",
+        rightLabel: "מאוד שונה, הילד/ה כנראה מרגיש/ה את זה"
+      },
+      {
+        id: "q3",
+        title: "איך הילד/ה חווה את הפער?",
+        description: "אם יש פער בין הבית לקהילה – איך נראה לכם שהילד/ה חי/ה אותו?",
+        leftLabel: "בסדר / מעשיר / לא משמעותי",
+        middleLabel: "לפעמים מבלבל, לפעמים בסדר",
+        rightLabel: "לעיתים קרובות מבלבל או מכאיב"
+      }
+    ];
+
+    const questionBlock = document.getElementById("questionBlock");
+    const doneBlock = document.getElementById("doneBlock");
+    const questionTitleEl = document.getElementById("questionTitle");
+    const questionDescEl = document.getElementById("questionDescription");
+    const leftLabelEl = document.getElementById("leftLabel");
+    const middleLabelEl = document.getElementById("middleLabel");
+    const rightLabelEl = document.getElementById("rightLabel");
+    const slider = document.getElementById("slider");
+    const status = document.getElementById("status");
+    const backBtn = document.getElementById("backBtn");
+    const submitBtn = document.getElementById("submitBtn");
+    const progressTextEl = document.getElementById("progressText");
+    const progressDotsEl = document.getElementById("progressDots");
+
+    let questions = [];
+    let currentIndex = 0;
+    let locked = false;
+    let answers = {};
+
+    function describeValue(value) {
+      const v = Number(value);
+      if (v <= 30) return leftLabelEl.textContent;
+      if (v >= 70) return rightLabelEl.textContent;
+      return middleLabelEl.textContent;
+    }
+
+    async function loadQuestions() {
+      try {
+        const res = await fetch("questions.json");
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const loaded = await res.json();
+        if (!Array.isArray(loaded) || loaded.length === 0) {
+          throw new Error("questions.json empty or invalid");
+        }
+        questions = loaded;
+      } catch (err) {
+        console.warn("Using fallback questions:", err);
+        questions = fallbackQuestions;
+      }
+
+      if (progressDotsEl) {
+        progressDotsEl.innerHTML = "";
+        for (let i = 0; i < questions.length; i++) {
+          const dot = document.createElement("div");
+          dot.className = "progress-dot";
+          progressDotsEl.appendChild(dot);
+        }
+      }
+      currentIndex = 0;
+      showCurrentQuestion();
+    }
+
+    function showCurrentQuestion() {
+      if (currentIndex >= questions.length) {
+        questionBlock.style.display = "none";
+        doneBlock.style.display = "block";
+        return;
+      }
+
+      const total = questions.length;
+      const step = currentIndex + 1;
+      const q = questions[currentIndex];
+
+      locked = false;
+      slider.disabled = false;
+      submitBtn.disabled = false;
+
+      if (progressTextEl) {
+        progressTextEl.textContent = `שאלה ${step} מתוך ${total}`;
+      }
+      if (progressDotsEl) {
+        const dots = progressDotsEl.children;
+        for (let i = 0; i < dots.length; i++) {
+          dots[i].classList.remove("active", "completed");
+          if (i < currentIndex) dots[i].classList.add("completed");
+          else if (i === currentIndex) dots[i].classList.add("active");
+        }
+      }
+
+      questionTitleEl.textContent = q.title || "";
+      questionDescEl.textContent = q.description || "";
+      leftLabelEl.textContent = q.leftLabel || "";
+      middleLabelEl.textContent = q.middleLabel || "";
+      rightLabelEl.textContent = q.rightLabel || "";
+
+      const saved = answers[q.id];
+      if (typeof saved === "number" && !Number.isNaN(saved)) {
+        slider.value = saved;
+      } else {
+        slider.value = 50;
+      }
+
+      const val = slider.value;
+      const label = describeValue(val);
+      status.textContent = `המיקום הנוכחי על הקו: ${label} (ערך: ${val})`;
+
+      backBtn.disabled = currentIndex === 0;
+      submitBtn.textContent =
+        currentIndex === total - 1 ? "שמור/י תשובה וסיום" : "שמור/י תשובה והמשך";
+
+      questionBlock.style.display = "block";
+      doneBlock.style.display = "none";
+    }
+
+    slider.addEventListener("input", () => {
+      if (locked) return;
+      const val = slider.value;
+      const label = describeValue(val);
+      status.textContent = `המיקום הנוכחי על הקו: ${label} (ערך: ${val})`;
+    });
+
+    backBtn.addEventListener("click", () => {
+      if (locked) return;
+      if (currentIndex === 0) return;
+      currentIndex -= 1;
+      showCurrentQuestion();
+    });
+
+    submitBtn.addEventListener("click", () => {
+      if (locked) return;
+      if (!questions[currentIndex]) return;
+
+      locked = true;
+
+      const q = questions[currentIndex];
+      const questionId = q.id;
+      const val = Number(slider.value);
+      const label = describeValue(val);
+
+      answers[questionId] = val;
+      status.textContent = `✅ התשובה נשמרת. בחרת: ${label} (ערך: ${val})`;
+
+      const payload = JSON.stringify({
+        sessionId,
+        parentId,
+        questionId,
+        value: val
+      });
+      const formData = new URLSearchParams();
+      formData.append("payload", payload);
+
+      fetch(SCRIPT_URL, {
+        method: "POST",
+        body: formData
+      }).catch(err => {
+        console.error("Background save error:", err);
+      });
+
+      setTimeout(() => {
+        currentIndex += 1;
+        locked = false;
+        showCurrentQuestion();
+      }, 200);
+    });
+
+    loadQuestions();
+  </script>
+</body>
+</html>

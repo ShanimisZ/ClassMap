@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8" />
+  <title>תצוגת סקר</title>
+
+  <!-- Custom fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #edf0f8;
+      --card: #ffffff;
+      --stroke: #d7dcef;
+      --text: #111827;
+      --muted: #6b7280;
+      --accent: #6366f1;          /* main accent – indigo */
+      --accent-soft: #e0e7ff;     /* soft indigo background */
+      --accent-strong: #4f46e5;   /* stronger accent */
+      --dot: #ec4899;             /* pinkish dots */
+      --dot-shadow: rgba(236, 72, 153, 0.35);
+      --median: #0f172a;
+      --shadow: 0 28px 60px rgba(15, 23, 42, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Heebo", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #eef2ff 0, #edf0f8 42%, #e5e7eb 100%);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px;
+      direction: rtl;
+    }
+
+    main.stage {
+      width: 100%;
+      max-width: 1200px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--stroke);
+      border-radius: 22px;
+      padding: 32px 28px 26px;
+      box-shadow: var(--shadow);
+    }
+
+    .screens {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .screen {
+      display: none;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    .card-header {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      text-align: center;
+      margin-bottom: 22px;
+    }
+
+    .title {
+      font-size: 2.4rem;
+      margin: 0;
+      line-height: 1.3;
+      letter-spacing: 0.02em;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .intro-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) 260px;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .intro-layout ol {
+      margin: 0;
+      padding-right: 20px;
+      color: var(--muted);
+      line-height: 1.8;
+      font-size: 1rem;
+    }
+
+    .qr-box {
+      border-radius: 18px;
+      padding: 16px 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(145deg, #f5f3ff, #e0f2fe);
+      border: 1px solid var(--stroke);
+    }
+
+    .qr-box strong {
+      font-size: 1rem;
+      color: var(--text);
+    }
+
+    .qr-box img {
+      width: 220px;
+      height: 220px;
+      object-fit: contain;
+    }
+
+    .link-chip {
+      margin-top: 14px;
+      padding: 10px 12px;
+      background: #f9fafb;
+      border-radius: 12px;
+      border: 1px dashed var(--stroke);
+      font-size: 0.95rem;
+      color: var(--muted);
+      text-align: center;
+      word-break: break-all;
+    }
+
+    /* GRAPH AREA */
+
+.graph-shell {
+  margin-top: 8px;
+  padding: 20px 22px 10px;
+  border-radius: 24px;
+  background: radial-gradient(circle at top, #f5f3ff 0, #f9fafb 45%, #eef2ff 100%);
+  border: 1px solid rgba(215, 220, 239, 0.9);
+}
+
+/* container for center line + bar */
+.axis-wrapper {
+  position: relative;
+  margin-top: 6px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #f9fafb 0, #f1f5f9 100%);
+  box-shadow: inset 0 0 0 1px rgba(215, 220, 239, 0.8);
+  padding: 26px 32px;
+}
+
+/* vertical center line */
+.axis-center-line {
+  position: absolute;
+  top: 24px;
+  bottom: 24px;
+  left: 50%;
+  width: 3px;
+  transform: translateX(-50%);
+  background: rgba(148, 163, 184, 0.55);
+  opacity: 0.6;
+  border-radius: 999px;
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.25),
+    0 0 18px rgba(15, 23, 42, 0.18);
+}
+
+/* wrapper inside the shell */
+.dot-bar-wrapper {
+  width: 100%;
+  display: flex;
+  align-items: stretch;
+}
+
+/* main plotting area */
+.dot-bar {
+  position: relative;
+  height: 240px;
+  border-radius: 18px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top, rgba(99, 102, 241, 0.15), rgba(14, 165, 233, 0.03));
+}
+
+/* dots */
+.dot {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--dot);
+  transform: translate(-50%, -50%);
+  opacity: 0.96;
+  z-index: 2;
+  box-shadow:
+    0 0 0 3px rgba(236, 72, 153, 0.18),
+    0 10px 26px var(--dot-shadow);
+  animation: pop 260ms ease-out;
+}
+
+/* median line */
+.mean-line {
+  position: absolute;
+  top: 18px;
+  bottom: 18px;
+  width: 3px;
+  background: #6366f1;
+  opacity: 0.75;
+  transform: translateX(-50%);
+  z-index: 2;
+  border-radius: 999px;
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.22),
+    0 0 16px rgba(15, 23, 42, 0.25);
+}
+
+/* canvas overlay for the “hill” */
+.density-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* X-axis labels row under the graph */
+.axis-labels-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 0 6px;
+  font-size: 1.02rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* FOOTER + CONTROLS under the graph */
+
+.footer-row {
+  margin-top: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 0.97rem;
+  color: var(--muted);
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kbd-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  border: 1px solid var(--stroke);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* nav bar under footer stays similar but a bit lighter */
+
+.nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  font-size: 0.95rem;
+}
+
+.nav-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+
+    @keyframes pop {
+      from {
+        transform: translate(-50%, -50%) scale(0.7);
+        opacity: 0.4;
+      }
+      to {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.96;
+      }
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: 28px 14px;
+      }
+
+      .card {
+        padding: 24px 18px 20px;
+      }
+
+      .intro-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .title {
+        font-size: 1.8rem;
+      }
+
+      .subtitle {
+        font-size: 1rem;
+      }
+
+      .dot-bar {
+        height: 210px;
+      }
+
+      .dot-bar-labels {
+        font-size: 0.95rem;
+      }
+
+      .footer {
+        font-size: 0.95rem;
+        gap: 10px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+<main class="stage">
+  <div class="screens">
+    <!-- Intro screen -->
+    <section class="card screen active" id="introScreen">
+      <div class="card-header">
+        <h1 class="title">מוכנים להתחיל?</h1>
+        <p class="subtitle">
+          הורים: סרקו את הקוד או הכנסו לקישור כדי לענות. לאחר מכן נעבור בין השאלות ונחשוף את התוצאות יחד.
+        </p>
+      </div>
+      <div class="intro-layout">
+        <div>
+          <ol class="intro-steps">
+            <li>סרקו את קוד ה-QR או הזינו את הכתובת.</li>
+            <li>ענו על כל השאלות בקצב שנוח לכם.</li>
+            <li>נציג את התוצאות בשיחה משותפת בכיתה.</li>
+          </ol>
+          <div id="joinLink" class="link-chip">...</div>
+          <button id="startShowBtn" class="primary-btn">התחלת תצוגה</button>
+        </div>
+        <div class="qr-box">
+          <strong>הצטרפו כאן</strong>
+          <img id="qrImg" alt="QR code">
+        </div>
+      </div>
+    </section>
+
+    <!-- Graph screen -->
+    <section class="card screen" id="graphScreen">
+      <div class="card-header">
+        <h1 class="title" id="qTitle">שאלה</h1>
+        <p class="subtitle" id="qSubtitle">תיאור השאלה יוצג כאן.</p>
+      </div>
+
+      <div class="graph-shell">
+        <div class="axis-wrapper">
+          <div class="axis-center-line"></div>
+          <div class="dot-bar" id="dotBar"></div>
+        </div>
+        <div class="axis-labels-row">
+          <span id="labelLeft">קצה שמאלי</span>
+          <span id="labelMid">באמצע</span>
+          <span id="labelRight">קצה ימני</span>
+        </div>
+
+        <div class="footer-row">
+          <div class="footer-left">
+            <span id="footerText">מתחבר לתגובות...</span>
+          </div>
+          <div class="kbd-chip">
+            <kbd>Space</kbd>
+            <span>הצגה / הסתרה על המסך הזה</span>
+          </div>
+        </div>
+
+        <div class="nav-bar">
+          <div class="nav-group">
+            <button id="prevBtn" class="ghost-btn">שאלה קודמת</button>
+            <button id="nextBtn" class="ghost-btn">שאלה הבאה</button>
+          </div>
+          <div class="nav-group">
+            <span id="progressText">שאלה 1 מתוך 1</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+<script>
+  // === CONFIG ===
+  const SCRIPT_URL =
+    "https://script.google.com/macros/s/AKfycbxroy8w-KkybITVHMqoXUB8vg3M4uHfMa22Op4mK2xeDXLEguxIm854IFaQF4JJ47Vo/exec";
+
+  const fallbackQuestions = [
+    {
+      id: "q1",
+      title: "מפת שייכות – איפה הילד/ה שלי בכיתה?",
+      description: "דמיינו את הכיתה כמעגל. היכן הילד/ה שלכם בדרך כלל נמצא/ת ביחס לקבוצה?",
+      leftLabel: "יותר בצד / מתבוננ/ת",
+      middleLabel: "לפעמים בפנים, לפעמים בחוץ",
+      rightLabel: "במרכז הדברים"
+    },
+    {
+      id: "q2",
+      title: "הלימה בין הבית לקהילה",
+      description: "עד כמה המסרים וציפיות בבית דומים למסרים של בית הספר והקהילה?",
+      leftLabel: "מאוד דומה",
+      middleLabel: "יש דומה וגם שונה",
+      rightLabel: "מאוד שונה, הילד/ה כנראה מרגיש/ה את זה"
+    },
+    {
+      id: "q3",
+      title: "איך הילד/ה חווה את הפער?",
+      description: "אם יש פער בין הבית לקהילה – איך נראה לכם שהילד/ה חי/ה אותו?",
+      leftLabel: "בסדר / מעשיר / לא משמעותי",
+      middleLabel: "לפעמים מבלבל, לפעמים בסדר",
+      rightLabel: "לעיתים קרובות מבלבל או מכאיב"
+    }
+  ];
+
+  const urlParams = new URLSearchParams(location.search);
+  let SESSION_ID = urlParams.get("sessionId") || "5A_2025-11-26";
+
+  // === DOM REFS ===
+  const introScreen  = document.getElementById("introScreen");
+  const graphScreen  = document.getElementById("graphScreen");
+  const startShowBtn = document.getElementById("startShowBtn");
+  const joinLink     = document.getElementById("joinLink");
+  const qrImg        = document.getElementById("qrImg");
+
+  const dotBarEl     = document.getElementById("dotBar");
+  const footerText   = document.getElementById("footerText");
+
+  const titleEl      = document.getElementById("qTitle");
+  const subtitleEl   = document.getElementById("qSubtitle");
+  const labelLeftEl  = document.getElementById("labelLeft");
+  const labelMidEl   = document.getElementById("labelMid");
+  const labelRightEl = document.getElementById("labelRight");
+
+  const prevBtn      = document.getElementById("prevBtn");
+  const nextBtn      = document.getElementById("nextBtn");
+  const progressText = document.getElementById("progressText");
+
+  // === PARTICIPANT LINK + QR ===
+  const PARTICIPANT_URL = new URL(
+    `parent.html?sessionId=${encodeURIComponent(SESSION_ID)}`,
+    location.href
+  ).href;
+  joinLink.textContent = PARTICIPANT_URL;
+  qrImg.src =
+    "https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=" +
+    encodeURIComponent(PARTICIPANT_URL);
+
+  // === STATE ===
+  const POLL_MS = 200000;
+  let pollHandle   = null;
+  let questions    = [];
+  let currentIndex = 0;
+  let lastValues   = [];
+  let showDots     = false;   // are dots currently visible?
+  let isRevealed   = false;   // have we ever revealed for this question?
+  let pendingConfig = null;   // host message that arrived before questions.json
+
+  // === CANVAS FOR SMOOTH "HILL" BACKGROUND ===
+  const densityCanvas = document.createElement("canvas");
+  densityCanvas.className = "density-canvas";
+  dotBarEl.appendChild(densityCanvas);
+  const densityCtx = densityCanvas.getContext("2d");
+
+  function resizeCanvas() {
+    const rect  = dotBarEl.getBoundingClientRect();
+    const ratio = window.devicePixelRatio || 1;
+    densityCanvas.width  = rect.width * ratio;
+    densityCanvas.height = rect.height * ratio;
+    densityCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  }
+
+  window.addEventListener("resize", () => {
+    resizeCanvas();
+    if (showDots && lastValues.length) renderDots(lastValues);
+  });
+
+  // === UI HELPERS ===
+  function showScreen(which) {
+    introScreen.classList.toggle("active", which === "intro");
+    graphScreen.classList.toggle("active", which === "graph");
+
+    
+    if (which === "graph") {
+      // now the graph is visible → canvas has real size
+      resizeCanvas();
+      if (showDots && lastValues.length) {
+        renderDots(lastValues);
+      }
+    }
+  }
+
+  function updateQuestionUI(q) {
+    if (!q) return;
+    titleEl.textContent      = q.title || "שאלה";
+    subtitleEl.textContent   = q.description || "";
+    labelLeftEl.textContent  = q.leftLabel   || "";
+    labelMidEl.textContent   = q.middleLabel || "";
+    labelRightEl.textContent = q.rightLabel  || "";
+    progressText.textContent = `שאלה ${currentIndex + 1} מתוך ${questions.length}`;
+  }
+
+  function updateFooter(count) {
+    if (count == null) {
+      footerText.textContent = "מתחבר לתגובות...";
+    } else if (!count) {
+      footerText.textContent = "עוד אין תגובות.";
+    } else {
+      const mode = showDots ? " (מצב: תוצאות מוצגות)" : " (מצב: מוסתר)";
+      footerText.textContent = `סה\"כ תגובות: ${count}${mode}`;
+    }
+  }
+
+  function clearDotsAndDensity() {
+    dotBarEl.querySelectorAll(".dot, .mean-line").forEach(el => el.remove());
+    densityCtx.clearRect(0, 0, densityCanvas.width, densityCanvas.height);
+  }
+
+  function goToQuestion(index) {
+    if (!questions.length) return;
+
+    const clamped = Math.max(0, Math.min(index, questions.length - 1));
+    currentIndex  = clamped;
+    updateQuestionUI(questions[currentIndex]);
+    prevBtn.disabled = currentIndex === 0;
+    nextBtn.disabled = currentIndex === questions.length - 1;
+
+    clearDotsAndDensity();
+    lastValues = [];
+    showDots   = false;
+    isRevealed = false;
+    updateFooter(null);
+    startPolling();
+  }
+
+  // === DATA FETCHING ===
+  function startPolling() {
+    if (pollHandle) clearInterval(pollHandle);
+    pollHandle = setInterval(fetchResults, POLL_MS);
+    fetchResults();
+  }
+
+  async function fetchResults() {
+    if (!questions.length) return;
+    const questionId = questions[currentIndex].id;
+
+    try {
+      const url =
+        `${SCRIPT_URL}?sessionId=${encodeURIComponent(SESSION_ID)}` +
+        `&questionId=${encodeURIComponent(questionId)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      renderFromData(data);
+    } catch (err) {
+      console.error("Projector fetch error:", err);
+      footerText.textContent = "שגיאה בטעינת הנתונים";
+    }
+  }
+
+  function extractValues(data) {
+    const rows = Array.isArray(data)
+      ? data
+      : Array.isArray(data?.values)
+      ? data.values
+      : Array.isArray(data?.responses)
+      ? data.responses
+      : [];
+
+    const nums = [];
+    rows.forEach(row => {
+      if (!row) return;
+      const v = Number(row.value);
+      if (!Number.isNaN(v)) nums.push(v);
+    });
+    return nums;
+  }
+
+  function renderFromData(data) {
+    const values = extractValues(data);
+    console.debug("Projector values extracted:", values);
+
+    if (!values.length) {
+      clearDotsAndDensity();
+      lastValues = [];
+      updateFooter(0);
+      return;
+    }
+
+    lastValues = values.slice();
+    updateFooter(values.length);
+
+    if (showDots) {
+      renderDots(lastValues);
+    } else {
+      clearDotsAndDensity();
+    }
+  }
+
+  // === DRAWING: HILL + DOTS ===
+  function drawDensity(values) {
+  const width  = dotBarEl.clientWidth  || 1;
+  const height = dotBarEl.clientHeight || 1;
+
+  densityCtx.clearRect(0, 0, densityCanvas.width, densityCanvas.height);
+
+  const paddingPercent = 5;
+  const widthPercent   = 100 - 2 * paddingPercent;
+
+  // We now always draw over the full 0–100 range
+  const minX = 0;
+  const maxX = 100;
+  const span = maxX - minX;
+
+  const samples = 120;
+  // Slightly adaptive bandwidth so small groups don’t look too spiky
+  const bw = Math.max(6, 25 / Math.sqrt(Math.max(values.length, 1)));
+
+  function kernel(u) {
+    // Gaussian kernel
+    return Math.exp(-0.5 * u * u);
+  }
+
+  const densities = [];
+  let maxD = 0;
+
+  for (let i = 0; i < samples; i++) {
+    const x = minX + (span * i) / (samples - 1); // 0 → 100
+    let d = 0;
+    for (const v of values) {
+      d += kernel((x - v) / bw);
+    }
+    densities.push({ x, d });
+    if (d > maxD) maxD = d;
+  }
+
+  if (!maxD) return;
+
+  densityCtx.beginPath();
+
+  // Start on the baseline at x = 0
+  const startPxPercent = paddingPercent + (widthPercent * minX) / 100;
+  const startPx = (startPxPercent / 100) * width;
+  densityCtx.moveTo(startPx, height);
+
+  // Draw the smooth curve
+  for (const { x, d } of densities) {
+    const norm = d / maxD;
+    const pxPercent = paddingPercent + (widthPercent * x) / 100;
+    const px = (pxPercent / 100) * width;
+    const py = height - norm * (height - 18);
+    densityCtx.lineTo(px, py);
+  }
+
+  // Close back to the baseline at x = 100
+  const endPxPercent = paddingPercent + (widthPercent * maxX) / 100;
+  const endPx = (endPxPercent / 100) * width;
+  densityCtx.lineTo(endPx, height);
+  densityCtx.closePath();
+
+  const gradient = densityCtx.createLinearGradient(0, 0, 0, height);
+  gradient.addColorStop(0, "rgba(129, 140, 248, 0.42)");
+  gradient.addColorStop(1, "rgba(129, 140, 248, 0.05)");
+  densityCtx.fillStyle = gradient;
+  densityCtx.fill();
+}
+
+
+  function renderDots(values) {
+      // make sure canvas matches current dotBar size
+    resizeCanvas();
+
+    clearDotsAndDensity();
+
+    const clean = values
+      .map(v => Math.max(0, Math.min(100, Number(v))))
+      .filter(v => !Number.isNaN(v));
+    if (!clean.length) return;
+
+    drawDensity(clean);
+
+    const paddingPercent = 5;
+    const widthPercent   = 100 - 2 * paddingPercent;
+
+    const sorted = [...clean].sort((a, b) => a - b);
+    const n      = sorted.length;
+    const median = n % 2 === 1
+      ? sorted[(n - 1) / 2]
+      : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
+
+    const medianPos  = paddingPercent + (widthPercent * median) / 100;
+    const medianLine = document.createElement("div");
+    medianLine.className = "mean-line";
+    medianLine.style.left = medianPos + "%";
+    dotBarEl.appendChild(medianLine);
+
+    const freq = {};
+    clean.forEach(v => { freq[v] = (freq[v] || 0) + 1; });
+
+    const stackSpacing = 18;
+    Object.entries(freq).forEach(([valStr, count]) => {
+      const val    = Number(valStr);
+      const xPos   = paddingPercent + (widthPercent * val) / 100;
+      const totalH = (count - 1) * stackSpacing;
+
+      for (let i = 0; i < count; i++) {
+        const offset = i * stackSpacing - totalH / 2;
+        const dot = document.createElement("div");
+        dot.className = "dot";
+        dot.style.left = xPos + "%";
+        dot.style.top  = `calc(50% + ${offset}px)`;
+        dot.title = String(val);
+        dotBarEl.appendChild(dot);
+      }
+    });
+  }
+
+  function revealResults() {
+    isRevealed = true;
+    showDots   = true;
+    if (lastValues.length) renderDots(lastValues);
+    updateFooter(lastValues.length || 0);
+  }
+
+  // === HOST MESSAGES ===
+  window.addEventListener("message", event => {
+    const msg = event.data;
+    if (!msg || msg.type !== "classmapConfig") return;
+    console.log("Projector got config:", msg);
+
+    if (msg.sessionId) {
+      SESSION_ID = msg.sessionId;
+    }
+
+    if (msg.questionId) {
+      if (!questions.length) {
+        pendingConfig = msg;
+      } else {
+        const idx = questions.findIndex(q => q.id === msg.questionId);
+        if (idx >= 0) goToQuestion(idx);
+      }
+    }
+
+    if (typeof msg.visible === "boolean") {
+      if (msg.visible) {
+        showScreen("graph");
+        revealResults();
+      } else {
+        showDots   = false;
+        isRevealed = false;
+        clearDotsAndDensity();
+        updateFooter(lastValues.length || 0);
+      }
+    }
+  });
+
+  // === LOCAL CONTROLS (SPACE / BUTTONS) ===
+  window.addEventListener("keydown", e => {
+    if (e.code === "Space") {
+      e.preventDefault();
+      if (!isRevealed) {
+        showScreen("graph");
+        revealResults();
+      } else {
+        showDots = !showDots;
+        if (showDots && lastValues.length) {
+          renderDots(lastValues);
+        } else {
+          clearDotsAndDensity();
+        }
+        updateFooter(lastValues.length || 0);
+      }
+    }
+  });
+
+  prevBtn.addEventListener("click", () => {
+    if (currentIndex > 0) goToQuestion(currentIndex - 1);
+  });
+  nextBtn.addEventListener("click", () => {
+    if (currentIndex < questions.length - 1) goToQuestion(currentIndex + 1);
+  });
+
+  startShowBtn.addEventListener("click", () => {
+    if (!questions.length) return;
+    showScreen("graph");
+    goToQuestion(currentIndex);
+  });
+
+  // === LOAD QUESTIONS ===
+  async function loadQuestions() {
+    try {
+      const res  = await fetch("questions.json");
+      const list = await res.json();
+      if (Array.isArray(list) && list.length) {
+        questions = list;
+      } else {
+        throw new Error("questions.json empty");
+      }
+      console.log("Projector: loaded questions from questions.json");
+    } catch (err) {
+      console.warn("Projector: using fallback questions:", err);
+      questions = fallbackQuestions;
+    }
+
+    let initialIndex = 0;
+    if (pendingConfig && pendingConfig.questionId) {
+      const idx = questions.findIndex(q => q.id === pendingConfig.questionId);
+      if (idx >= 0) initialIndex = idx;
+    }
+    currentIndex = initialIndex;
+    updateQuestionUI(questions[currentIndex]);
+    prevBtn.disabled = currentIndex === 0;
+    nextBtn.disabled = currentIndex === questions.length - 1;
+    updateFooter(null);
+  }
+
+  // === BOOT ===
+  showScreen("intro");
+  resizeCanvas();
+  loadQuestions();
+</script>
+
+
+
+</body>
+</html>

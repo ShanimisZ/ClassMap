@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Class Map – Host View</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+    }
+    .config {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+    }
+    .config label {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .config input,
+    .config select {
+      padding: 0.25rem 0.4rem;
+      font-size: 0.9rem;
+    }
+    button {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+    .status {
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      color: #555;
+    }
+    .stats {
+      margin-top: 1.5rem;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      background: #f7f7f7;
+      font-size: 0.95rem;
+    }
+    .stats strong {
+      font-weight: 600;
+    }
+
+    /* Question preview */
+    .q-preview {
+      margin-top: 0.75rem;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      background: #fafafa;
+      border: 1px solid #eee;
+      font-size: 0.95rem;
+    }
+    .q-title-host {
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    .q-desc-host {
+      margin-bottom: 0.25rem;
+      color: #444;
+    }
+    .q-labels-host {
+      font-size: 0.85rem;
+      color: #666;
+    }
+
+    /* Dot bar styles */
+    .dot-bar-container {
+      margin-top: 1rem;
+    }
+    .dot-bar-title {
+      font-size: 0.9rem;
+      margin-bottom: 0.25rem;
+    }
+    .dot-bar {
+      position: relative;
+      height: 80px;
+      border-radius: 999px;
+      background: #f3e1ff;
+      overflow: hidden;
+    }
+    .dot {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #caa1ff;
+      transform: translate(-50%, -50%);
+      opacity: 0.85;
+    }
+    .mean-line {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #222;
+      opacity: 0.7;
+      transform: translateX(-50%);
+    }
+    .dot-bar-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      margin-top: 0.3rem;
+      color: #555;
+    }
+
+    .values-list {
+      margin-top: 1rem;
+      font-family: "Courier New", monospace;
+      font-size: 0.9rem;
+      white-space: pre-wrap;
+      display: none; /* hide raw values text */
+    }
+  </style>
+</head>
+<body>
+  <h1>Class Map – Host Dashboard</h1>
+
+  <div class="config">
+    <label>
+      Session ID:
+      <input id="sessionInput" type="text" value="5A_2025-11-26" />
+    </label>
+
+    <label>
+      Question:
+      <select id="questionSelect"></select>
+    </label>
+
+    <button id="startBtn">Start polling</button>
+    <button id="stopBtn" disabled>Stop</button>
+    <button id="allowSummaryBtn">Allow parent summary</button>
+    <button id="clearSummaryBtn">Close parent summary</button>
+
+    <!-- projector controls -->
+    <button id="openProjectorBtn">Open projector</button>
+    <button id="showProjBtn" disabled>Show on projector</button>
+    <button id="hideProjBtn" disabled>Hide</button>
+  </div>
+
+  <div id="qPreview" class="q-preview" style="display:none;">
+    <div id="qTitleHost" class="q-title-host"></div>
+    <div id="qDescHost" class="q-desc-host"></div>
+    <div id="qLabelsHost" class="q-labels-host"></div>
+  </div>
+
+  <div id="status" class="status">
+    Loading questions...
+  </div>
+
+  <div id="stats" class="stats" style="display:none;">
+    <div><strong>Number of responses:</strong> <span id="count">0</span></div>
+    <div><strong>Min:</strong> <span id="min">-</span></div>
+    <div><strong>Max:</strong> <span id="max">-</span></div>
+    <div><strong>Average:</strong> <span id="avg">-</span></div>
+    <div><strong>Median:</strong> <span id="median">-</span></div>
+    <div style="margin-top:0.5rem;">
+      <strong>Rough distribution:</strong><br />
+      ≤ 30 (edge): <span id="leftCount">0</span><br />
+      31–70 (middle): <span id="midCount">0</span><br />
+      ≥ 71 (center): <span id="rightCount">0</span>
+    </div>
+
+    <div class="dot-bar-container">
+      <div class="dot-bar-title">Responses on the scale (dots) / median (black line):</div>
+      <div class="dot-bar" id="dotBar"></div>
+      <div class="dot-bar-labels">
+        <span id="barLeftLabel">Left</span>
+        <span id="barMiddleLabel">Middle</span>
+        <span id="barRightLabel">Right</span>
+      </div>
+    </div>
+
+    <div class="values-list" id="valuesList"></div>
+  </div>
+
+  <script>
+  // SAME SCRIPT_URL YOU USE IN parent.html
+  const SCRIPT_URL =
+    "https://script.google.com/macros/s/AKfycbxroy8w-KkybITVHMqoXUB8vg3M4uHfMa22Op4mK2xeDXLEguxIm854IFaQF4JJ47Vo/exec";
+
+  // ---- Fallback questions (same as parent.html) ----
+  const fallbackQuestions = [
+    {
+      id: "q1",
+      title: "מפת שייכות – איפה הילד/ה שלי בכיתה?",
+      description: "דמיינו את הכיתה כמעגל. היכן הילד/ה שלכם בדרך כלל נמצא/ת ביחס לקבוצה?",
+      leftLabel: "יותר בצד / מתבונן/ת",
+      middleLabel: "לפעמים בפנים, לפעמים בחוץ",
+      rightLabel: "במרכז הדברים"
+    },
+    {
+      id: "q2",
+      title: "הלימה בין הבית לקהילה",
+      description: "עד כמה המסרים וציפיות בבית דומים למסרים של בית הספר והקהילה?",
+      leftLabel: "מאוד דומה",
+      middleLabel: "יש דומה וגם שונה",
+      rightLabel: "מאוד שונה, הילד/ה כנראה מרגיש/ה את זה"
+    },
+    {
+      id: "q3",
+      title: "איך הילד/ה חווה את הפער?",
+      description: "אם יש פער בין הבית לקהילה – איך נראה לכם שהילד/ה חי/ה אותו?",
+      leftLabel: "בסדר / מעשיר / לא משמעותי",
+      middleLabel: "לפעמים מבלבל, לפעמים בסדר",
+      rightLabel: "לעיתים קרובות מבלבל או מכאיב"
+    }
+  ];
+
+  const sessionInput = document.getElementById("sessionInput");
+  const questionSelect = document.getElementById("questionSelect");
+  const startBtn = document.getElementById("startBtn");
+  const stopBtn = document.getElementById("stopBtn");
+  const allowSummaryBtn = document.getElementById("allowSummaryBtn");
+  const clearSummaryBtn = document.getElementById("clearSummaryBtn");
+  const statusEl = document.getElementById("status");
+
+  const qPreview = document.getElementById("qPreview");
+  const qTitleHost = document.getElementById("qTitleHost");
+  const qDescHost = document.getElementById("qDescHost");
+  const qLabelsHost = document.getElementById("qLabelsHost");
+
+  const statsBox = document.getElementById("stats");
+  const countEl = document.getElementById("count");
+  const minEl = document.getElementById("min");
+  const maxEl = document.getElementById("max");
+  const avgEl = document.getElementById("avg");
+  const medianEl = document.getElementById("median");
+  const leftEl = document.getElementById("leftCount");
+  const midEl = document.getElementById("midCount");
+  const rightEl = document.getElementById("rightCount");
+  const valuesListEl = document.getElementById("valuesList");
+  const dotBarEl = document.getElementById("dotBar");
+
+  const barLeftLabel = document.getElementById("barLeftLabel");
+  const barMiddleLabel = document.getElementById("barMiddleLabel");
+  const barRightLabel = document.getElementById("barRightLabel");
+
+  // projector controls
+  const openProjectorBtn = document.getElementById("openProjectorBtn");
+  const showProjBtn = document.getElementById("showProjBtn");
+  const hideProjBtn = document.getElementById("hideProjBtn");
+
+  let pollTimer = null;
+  let questions = [];
+  let projectorWindow = null;
+  let projectorVisible = false;
+
+  function getSelectedQuestionId() {
+    return questionSelect.value || "";
+  }
+
+  function getQuestionById(id) {
+    return questions.find(q => q.id === id);
+  }
+
+  // ---- messaging to projector ----
+  function sendProjectorConfig() {
+    if (!projectorWindow || projectorWindow.closed) return;
+    const sessionId = sessionInput.value.trim();
+    const questionId = getSelectedQuestionId();
+
+    projectorWindow.postMessage(
+      {
+        type: "classmapConfig",
+        sessionId,
+        questionId,
+        visible: projectorVisible
+      },
+      "*"
+    );
+  }
+
+  function sendProjectorData(values) {
+    if (!projectorWindow || projectorWindow.closed) return;
+    const sessionId = sessionInput.value.trim();
+    const questionId = getSelectedQuestionId();
+
+    projectorWindow.postMessage(
+      {
+        type: "classmapData",
+        sessionId,
+        questionId,
+        values
+      },
+      "*"
+    );
+  }
+
+  function populateQuestionSelect() {
+    questionSelect.innerHTML = "";
+    questions.forEach(q => {
+      const opt = document.createElement("option");
+      opt.value = q.id;
+      opt.textContent = `${q.id} – ${q.title || "Untitled"}`;
+      questionSelect.appendChild(opt);
+    });
+    if (questions.length > 0) {
+      questionSelect.value = questions[0].id;
+    }
+    updateQuestionPreview();
+  }
+
+  function updateQuestionPreview() {
+    const qId = getSelectedQuestionId();
+    const q = getQuestionById(qId);
+    if (!q) {
+      qPreview.style.display = "none";
+      barLeftLabel.textContent = "Left";
+      barMiddleLabel.textContent = "Middle";
+      barRightLabel.textContent = "Right";
+      return;
+    }
+
+    qPreview.style.display = "block";
+    qTitleHost.textContent = q.title || "";
+    qDescHost.textContent = q.description || "";
+    qLabelsHost.textContent = [
+      q.leftLabel || "",
+      q.middleLabel || "",
+      q.rightLabel || ""
+    ]
+      .filter(Boolean)
+      .join("  |  ");
+
+    barLeftLabel.textContent = q.leftLabel || "קצה אחד";
+    barMiddleLabel.textContent = q.middleLabel || "אמצע";
+    barRightLabel.textContent = q.rightLabel || "קצה שני";
+  }
+
+  async function loadQuestions() {
+    try {
+      const res = await fetch("questions.json");
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const loaded = await res.json();
+      if (!Array.isArray(loaded) || loaded.length === 0) {
+        throw new Error("questions.json empty or invalid");
+      }
+      questions = loaded;
+      console.log("Host: loaded questions from questions.json");
+      statusEl.textContent = "Questions loaded from questions.json.";
+    } catch (err) {
+      console.warn("Host: using fallback questions:", err);
+      questions = fallbackQuestions;
+      statusEl.textContent =
+        "Using fallback questions (could not load questions.json).";
+    }
+    populateQuestionSelect();
+  }
+
+  async function fetchResults() {
+    const sessionId = sessionInput.value.trim();
+    const questionId = getSelectedQuestionId();
+    if (!sessionId || !questionId) {
+      statusEl.textContent = "Missing sessionId or questionId.";
+      return;
+    }
+
+    try {
+      const url = `${SCRIPT_URL}?sessionId=${encodeURIComponent(
+        sessionId
+      )}&questionId=${encodeURIComponent(questionId)}`;
+      const res = await fetch(url);
+      const data = await res.json(); // [{ value: 50 }, ...]
+      updateStats(data);
+      statusEl.textContent = `Polling... (${new Date().toLocaleTimeString()})`;
+    } catch (err) {
+      console.error("Host fetch error:", err);
+      statusEl.textContent = "Error fetching data: " + String(err);
+    }
+  }
+
+  function renderDots(values) {
+    dotBarEl.innerHTML = "";
+    if (!values || values.length === 0) return;
+
+    const cleanValues = values
+      .map(v => Math.max(0, Math.min(100, Number(v))))
+      .filter(v => !Number.isNaN(v));
+
+    if (!cleanValues.length) return;
+
+    const paddingPercent = 5;
+    const widthPercent = 100 - 2 * paddingPercent;
+
+    // Median line
+    const sorted = [...cleanValues].sort((a, b) => a - b);
+    const n = sorted.length;
+    let median;
+    if (n % 2 === 1) {
+      median = sorted[(n - 1) / 2];
+    } else {
+      median = (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
+    }
+    const medianPos = paddingPercent + (widthPercent * median) / 100;
+    const medianLine = document.createElement("div");
+    medianLine.className = "mean-line";
+    medianLine.style.left = medianPos + "%";
+    dotBarEl.appendChild(medianLine);
+
+    // Stack dots per value
+    const freq = {};
+    cleanValues.forEach(val => {
+      const key = String(val);
+      freq[key] = (freq[key] || 0) + 1;
+    });
+
+    const stackSpacing = 12;
+
+    Object.entries(freq).forEach(([valStr, count]) => {
+      const val = Number(valStr);
+      const xPos = paddingPercent + (widthPercent * val) / 100;
+      const totalHeight = (count - 1) * stackSpacing;
+
+      for (let i = 0; i < count; i++) {
+        const offset = i * stackSpacing - totalHeight / 2;
+        const dot = document.createElement("div");
+        dot.className = "dot";
+        dot.style.left = xPos + "%";
+        dot.style.top = `calc(50% + ${offset}px)`;
+        dot.title = String(val);
+        dotBarEl.appendChild(dot);
+      }
+    });
+  }
+
+  function updateStats(data) {
+    // no data at all
+    if (!Array.isArray(data) || data.length === 0) {
+      sendProjectorData([]); // tell projector: 0 responses
+
+      statsBox.style.display = "block";
+      countEl.textContent = "0";
+      minEl.textContent = "-";
+      maxEl.textContent = "-";
+      avgEl.textContent = "-";
+      medianEl.textContent = "-";
+      leftEl.textContent = "0";
+      midEl.textContent = "0";
+      rightEl.textContent = "0";
+      valuesListEl.textContent = "(no responses yet)";
+      dotBarEl.innerHTML = "";
+      return;
+    }
+
+    const values = data
+      .map(d => Number(d.value))
+      .filter(v => !Number.isNaN(v));
+
+    if (values.length === 0) {
+      sendProjectorData([]);
+
+      statsBox.style.display = "block";
+      countEl.textContent = "0";
+      minEl.textContent = "-";
+      maxEl.textContent = "-";
+      avgEl.textContent = "-";
+      medianEl.textContent = "-";
+      leftEl.textContent = "0";
+      midEl.textContent = "0";
+      rightEl.textContent = "0";
+      valuesListEl.textContent = "(no valid numeric values)";
+      dotBarEl.innerHTML = "";
+      return;
+    }
+
+    // ✅ send values to projector
+    sendProjectorData(values);
+
+    const count = values.length;
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const sum = values.reduce((a, b) => a + b, 0);
+    const avg = sum / count;
+
+    const sortedForMedian = [...values].sort((a, b) => a - b);
+    let median;
+    if (count % 2 === 1) {
+      median = sortedForMedian[(count - 1) / 2];
+    } else {
+      median =
+        (sortedForMedian[count / 2 - 1] + sortedForMedian[count / 2]) / 2;
+    }
+
+    let left = 0,
+      mid = 0,
+      right = 0;
+    values.forEach(v => {
+      if (v <= 30) left++;
+      else if (v >= 71) right++;
+      else mid++;
+    });
+
+    statsBox.style.display = "block";
+    countEl.textContent = String(count);
+    minEl.textContent = String(min);
+    maxEl.textContent = String(max);
+    avgEl.textContent = avg.toFixed(1);
+    medianEl.textContent = median.toFixed(1);
+    leftEl.textContent = String(left);
+    midEl.textContent = String(mid);
+    rightEl.textContent = String(right);
+
+    valuesListEl.textContent = "Values: " + values.join(", ");
+    renderDots(values);
+  }
+
+  // ---- Parent summary control (matches Apps Script "payload" API) ----
+  async function sendSummaryControl(allow) {
+    const sessionId = sessionInput.value.trim();
+    const questionId = getSelectedQuestionId();
+
+    if (!sessionId || !questionId) {
+      statusEl.textContent =
+        "Set sessionId and select a question before controlling parent summary.";
+      return;
+    }
+
+    try {
+      const payload = JSON.stringify({
+        control: "summary",
+        sessionId,
+        questionId,
+        allowSummary: allow
+      });
+
+      const formData = new URLSearchParams();
+      formData.append("payload", payload);
+
+      const res = await fetch(SCRIPT_URL, {
+        method: "POST",
+        body: formData
+      });
+      const text = await res.text();
+      console.log("Control response:", text);
+
+      if (allow) {
+        statusEl.textContent =
+          "Parent summary ENABLED for this session & question.";
+      } else {
+        statusEl.textContent =
+          "Parent summary CLOSED for this session & question.";
+      }
+    } catch (err) {
+      console.error("Control error:", err);
+      statusEl.textContent =
+        "Error sending parent-summary control: " + String(err);
+    }
+  }
+
+  // ---- Event listeners ----
+  questionSelect.addEventListener("change", () => {
+    updateQuestionPreview();
+    if (!pollTimer) {
+      statusEl.textContent = "Selected question: " + getSelectedQuestionId();
+    }
+    sendProjectorConfig(); // keep projector in sync
+  });
+
+  startBtn.addEventListener("click", () => {
+    if (pollTimer) return;
+    fetchResults(); // immediate
+    pollTimer = setInterval(fetchResults, 1500); // every 1.5s
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    statusEl.textContent = "Started polling every 1.5 seconds.";
+  });
+
+  stopBtn.addEventListener("click", () => {
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+      statusEl.textContent = "Polling stopped.";
+    }
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+  });
+
+  allowSummaryBtn.addEventListener("click", () => sendSummaryControl(true));
+  clearSummaryBtn.addEventListener("click", () => sendSummaryControl(false));
+
+  openProjectorBtn.addEventListener("click", () => {
+    const sessionId = sessionInput.value.trim() || "5A_2025-11-26";
+    const url = `projector.html?sessionId=${encodeURIComponent(sessionId)}`;
+
+    projectorWindow = window.open(url, "ClassMapProjector");
+    projectorVisible = false; // start hidden
+    showProjBtn.disabled = false;
+    hideProjBtn.disabled = false;
+
+    // give the window a moment to load
+    setTimeout(() => {
+      sendProjectorConfig();
+    }, 600);
+  });
+
+  showProjBtn.addEventListener("click", () => {
+    projectorVisible = true;
+    sendProjectorConfig(); // this will tell projector: show dots + switch to graph
+  });
+
+  hideProjBtn.addEventListener("click", () => {
+    projectorVisible = false;
+    sendProjectorConfig(); // this will tell projector: hide dots
+  });
+
+  // ---- Init ----
+  loadQuestions();
+</script>
+
+</body>
+</html>
