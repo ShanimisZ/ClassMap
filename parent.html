@@ -223,9 +223,9 @@
     const SCRIPT_URL =
       "https://script.google.com/macros/s/AKfycbxroy8w-KkybITVHMqoXUB8vg3M4uHfMa22Op4mK2xeDXLEguxIm854IFaQF4JJ47Vo/exec";
 
-    // Allow sessionId override from URL (like parent.html?sessionId=5A_2025-11-26)
+    // Allow sessionId override from URL (like parent.html?sessionId=parents_leadership)
     const urlParams = new URLSearchParams(location.search);
-    const sessionId = urlParams.get("sessionId") || "5A_2025-11-26";
+    const sessionId = urlParams.get("sessionId") || "parents_leadership";
 
     // Stable parent ID (no optional chaining → works everywhere)
     let parentId = localStorage.getItem("classmap_parentId");

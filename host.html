@@ -604,7 +604,7 @@
   clearSummaryBtn.addEventListener("click", () => sendSummaryControl(false));
 
   openProjectorBtn.addEventListener("click", () => {
-    const sessionId = sessionInput.value.trim() || "5A_2025-11-26";
+    const sessionId = sessionInput.value.trim() || "parents_leadership";
     const url = `projector.html?sessionId=${encodeURIComponent(sessionId)}`;
 
     projectorWindow = window.open(url, "ClassMapProjector");
